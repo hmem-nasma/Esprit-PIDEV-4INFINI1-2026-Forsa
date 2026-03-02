@@ -217,7 +217,7 @@ public class AccountServiceImpl implements AccountService {
     private void logActivity(Wallet wallet, String action) {
         Activity activity = new Activity();
         activity.setAction(action);
-        activity.setTimestamp(java.sql.Timestamp.valueOf(LocalDateTime.now()));
+        activity.setTimestamp(LocalDateTime.now()); // ✅ LocalDateTime
         activity.setWallet(wallet);
         activityRepo.save(activity);
     }
