@@ -1,11 +1,17 @@
 package org.example.forsapidev.security;
 
+
+
 import lombok.NoArgsConstructor;
+import org.example.forsapidev.Repositories.RoleRepository;
+import org.example.forsapidev.Repositories.UserRepository;
+import org.example.forsapidev.security.jwt.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -15,27 +21,40 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
-import org.example.forsapidev.security.jwt.AuthEntryPointJwt;
-import org.example.forsapidev.security.jwt.AuthTokenFilter;
-import org.example.forsapidev.security.jwt.JwtUtils;
 import org.example.forsapidev.security.services.UserDetailsServiceImpl;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 
+
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @NoArgsConstructor
 public class WebSecurityConfig implements WebMvcConfigurer {
+
+
 
   @Autowired
   private AuthEntryPointJwt unauthorizedHandler;
 
   @Autowired
   private JwtUtils securityUtils;
+  @Autowired
+  private AuthAccessDeniedHandler accessDeniedHandler;
+  @Autowired
+  private UserRepository userRepository;
 
+  @Autowired
+  private RoleRepository roleRepository;
+
+  @Bean
+  public OAuth2SuccessHandler oAuth2SuccessHandler() {
+    return new OAuth2SuccessHandler(userRepository, roleRepository, securityUtils);
+  }
   @Bean
   public AuthTokenFilter authenticationJwtTokenFilter() {
     return new AuthTokenFilter();
   }
+
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -54,49 +73,38 @@ public class WebSecurityConfig implements WebMvcConfigurer {
 
   @Bean
   protected SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.cors().and().csrf().disable();
-    http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
-    http.exceptionHandling().authenticationEntryPoint(unauthorizedHandler);
 
-    http.authorizeHttpRequests()
+    http
+            .cors().and()
+            .csrf().disable()
+
+            .sessionManagement()
+            .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
+            .and()
+
+            .exceptionHandling()
+            .authenticationEntryPoint(unauthorizedHandler)
+            .accessDeniedHandler(accessDeniedHandler)
+            .and()
+
+            .authorizeHttpRequests()
             .requestMatchers(securityUtils.AUTH_WHITELIST).permitAll()
-            .requestMatchers("/api/scoring/**").permitAll()
-            .requestMatchers("/api/recommendations/**").permitAll()
-            .requestMatchers("/api/rerating/**").permitAll()
-            .requestMatchers("/api/partners/**").permitAll()
-            .requestMatchers("/api/partner-transactions/**").permitAll()
-            .requestMatchers("/api/qr-code/**").permitAll()
-            .requestMatchers("/api/partner-reviews/**").permitAll()
-            .requestMatchers("/api/partner-analytics/**").permitAll()
-            .requestMatchers("/api/fraud-alerts/**").permitAll()
-            .requestMatchers("/api/cashback/**").permitAll()
-            .requestMatchers("/swagger-ui/**").permitAll()
-            .requestMatchers("/swagger-ui.html").permitAll()
-            .requestMatchers("/v3/api-docs/**").permitAll()
-            .requestMatchers("/api-docs/**").permitAll()
-            .anyRequest().authenticated();
+            .anyRequest().authenticated()
+            .and()
 
-    http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
+            .oauth2Login()
+            .successHandler(oAuth2SuccessHandler())
+            .and()
+
+            .addFilterBefore(authenticationJwtTokenFilter(),
+                    UsernamePasswordAuthenticationFilter.class);
 
     return http.build();
   }
 
-  @Bean
-  public WebSecurityCustomizer webSecurityCustomizer() throws Exception {
-    return (web) -> web.ignoring()
-            .requestMatchers(securityUtils.AUTH_WHITELIST)
-            .requestMatchers("/swagger-ui/**")
-            .requestMatchers("/swagger-ui.html")
-            .requestMatchers("/v3/api-docs/**")
-            .requestMatchers("/api-docs/**");
-  }
-
-
   @Override
   public void addResourceHandlers(ResourceHandlerRegistry registry) {
-    registry.addResourceHandler("swagger-ui.html")
-            .addResourceLocations("classpath:/META-INF/resources/");
-    registry.addResourceHandler("/webjars/**")
-            .addResourceLocations("classpath:/META-INF/resources/webjars/");
+    registry.addResourceHandler("swagger-ui.html").addResourceLocations("classpath:/META-INF/resources/");
+    registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
   }
 }
