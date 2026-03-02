@@ -40,10 +40,6 @@ public class Complaint {
     @Temporal(TemporalType.TIMESTAMP)
     private Date createdAt;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "priority")
-    private Priority priority;
-
     @ManyToOne
     private User user;
 
@@ -59,7 +55,6 @@ public class Complaint {
         createdAt = new Date();
         if (status == null || status.isEmpty()) status = "OPEN";
         if (category == null) category = Category.AUTRE;
-        if (priority == null) priority = Priority.MEDIUM;
     }
 
     public void setId(Long id) {

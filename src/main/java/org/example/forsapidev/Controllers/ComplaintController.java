@@ -31,24 +31,25 @@ public class ComplaintController {
         return complaintService.retrieveAllComplaints();
     }
 
+//    @PreAuthorize("hasAnyRole('CLIENT','AGENT','ADMIN')")
     @GetMapping("/retrieve-complaint/{complaint-id}")
     @PreAuthorize("hasAnyRole('ADMIN','AGENT')")
     public Complaint retrieveComplaint(@PathVariable("complaint-id") Long cId) {
         return complaintService.retrieveComplaint(cId);
     }
-
+//    @PreAuthorize("hasRole('CLIENT')")
     @PostMapping("/add-complaint")
     @PreAuthorize("hasAnyRole('CLIENT','ADMIN','AGENT')")
     public Complaint addComplaint(@RequestBody Complaint c) {
         return complaintService.addComplaint(c);
     }
-
+//    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/remove-complaint/{complaint-id}")
     @PreAuthorize("hasRole('ADMIN')")
     public void removeComplaint(@PathVariable("complaint-id") Long cId) {
         complaintService.removeComplaint(cId);
     }
-
+//    @PreAuthorize("hasAnyRole('AGENT','ADMIN')")
     @PutMapping("/modify-complaint")
     @PreAuthorize("hasAnyRole('ADMIN','AGENT')")
     public Complaint modifyComplaint(@RequestBody Complaint c) {
@@ -60,7 +61,7 @@ public class ComplaintController {
     @PostMapping("/add-complaint-ai")
     @PreAuthorize("hasAnyRole('CLIENT','ADMIN','AGENT')")
     public Complaint addComplaintWithAI(@RequestBody Complaint c) {
-        return complaintService.addComplaintWithAI(c);  // inclut catégorie + priorité
+        return complaintService.addComplaintWithAI(c);
     }
 
     @GetMapping("/{complaintId}/ai-response")
@@ -94,12 +95,6 @@ public class ComplaintController {
     @PreAuthorize("hasAnyRole('ADMIN','AGENT')")
     public Map<String, Long> getStatsByCategory() {
         return complaintService.getStatsByCategory();
-    }
-
-    @GetMapping("/stats-by-priority")
-    @PreAuthorize("hasAnyRole('ADMIN','AGENT')")
-    public Map<String, Long> getStatsByPriority() {
-        return complaintService.getStatsByPriority();
     }
 
     // ========== Affectation et réponses ==========
