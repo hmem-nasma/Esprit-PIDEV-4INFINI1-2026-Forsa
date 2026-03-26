@@ -1,5 +1,6 @@
 package org.example.forsapidev.openai;
 
+import lombok.RequiredArgsConstructor;
 import org.example.forsapidev.entities.ComplaintFeedbackManagement.Priority;
 import org.example.forsapidev.entities.ComplaintFeedbackManagement.Category;
 import org.springframework.stereotype.Component;
@@ -7,21 +8,18 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component
+@RequiredArgsConstructor
 public class ComplaintAiAssistant {
 
     private static final Logger log = LoggerFactory.getLogger(ComplaintAiAssistant.class);
     private final OpenAiChatClient client;
-
-    public ComplaintAiAssistant(OpenAiChatClient client) {
-        this.client = client;
-    }
 
     public String classifyCategory(String description) {
         if (description == null || description.isBlank()) return "OTHER";
 
         String system = "You are a complaint classifier. "
                 + "Reply ONLY with one value among: "
-                + "FINANCE, TECHNIQUE, FRAUDE, COMPTE, CREDIT, SUPPORT, AUTRE. "
+                + "FINANCE, TECHNICAL, FRAUD, ACCOUNT, CREDIT, SUPPORT, OTHER. "  // ← ANGLAIS
                 + "No additional text.";
         String user = "Description: " + description + "\nGive the category.";
 
@@ -36,12 +34,12 @@ public class ComplaintAiAssistant {
             if (desc.contains("payment") || desc.contains("refund") || desc.contains("money")
                     || desc.contains("paiement") || desc.contains("remboursement")) return "FINANCE";
             if (desc.contains("bug") || desc.contains("connection") || desc.contains("application")
-                    || desc.contains("connexion")) return "TECHNIQUE";
-            if (desc.contains("fraud") || desc.contains("fraude")) return "FRAUDE";
-            if (desc.contains("account") || desc.contains("compte") || desc.contains("identifiant")) return "COMPTE";
+                    || desc.contains("connexion")) return "TECHNICAL";  // ← TECHNIQUE → TECHNICAL
+            if (desc.contains("fraud") || desc.contains("fraude")) return "FRAUD";  // ← FRAUDE → FRAUD
+            if (desc.contains("account") || desc.contains("compte") || desc.contains("identifiant")) return "ACCOUNT";  // ← COMPTE → ACCOUNT
             if (desc.contains("credit") || desc.contains("crédit")) return "CREDIT";
         }
-        return "AUTRE";
+        return "OTHER";  // ← AUTRE → OTHER
     }
 
     public String draftResponse(String category, String subject, String description) {

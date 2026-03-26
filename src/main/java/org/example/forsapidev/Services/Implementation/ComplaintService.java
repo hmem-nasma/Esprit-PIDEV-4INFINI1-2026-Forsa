@@ -42,7 +42,7 @@ public class ComplaintService implements IComplaintService {
     public Complaint addComplaint(Complaint c) {
         c.setCreatedAt(new Date());
         if (c.getStatus() == null || c.getStatus().isEmpty()) c.setStatus("OPEN");
-        if (c.getCategory() == null) c.setCategory(Category.AUTRE);
+        if (c.getCategory() == null) c.setCategory(Category.OTHER);
         return complaintRepository.save(c);
     }
 
@@ -63,7 +63,7 @@ public class ComplaintService implements IComplaintService {
             String cat = complaintAiAssistant.classifyCategory(c.getDescription());
             c.setCategory(Category.valueOf(cat.toUpperCase()));
         } catch (Exception e) {
-            c.setCategory(Category.AUTRE);
+            c.setCategory(Category.OTHER);
         }
 
         // 2. Priority
