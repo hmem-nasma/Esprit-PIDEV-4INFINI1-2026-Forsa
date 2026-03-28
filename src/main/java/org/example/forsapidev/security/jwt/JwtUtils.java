@@ -22,9 +22,6 @@ public class JwtUtils {
   @Autowired
   public UserRepository userRepository;
 
-
-
-
   private String JWT_HEADER_NAME = "Authorization";
   private String HEADER_PREFIX = "Bearer ";
   private final String SECRET = "ZwHqm8F3roWRnYjTJe5Zyw==";
@@ -67,17 +64,17 @@ public class JwtUtils {
           // Product comparison endpoints
           "/product-comparison/**",
 
-          //"/actuarial/**"
+          //  Wallet endpoints
+          "/api/accounts/**"
   };
 
   public String generatePinPassword() {
     int m = (int) Math.pow(10, 4 - 1);
     return ""+(m + new Random().nextInt(9 * m));
   }
+
   public String generateJwtToken(Authentication authentication) {
-
     UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
-
     return Jwts.builder()
             .setSubject(userPrincipal.getUsername())
             .claim("role", userPrincipal.getAuthorities()
@@ -90,6 +87,7 @@ public class JwtUtils {
             .signWith(SignatureAlgorithm.HS512, SECRET)
             .compact();
   }
+
   public String generateJwtFromUsername(String username) {
     return Jwts.builder()
             .setSubject(username)
@@ -98,6 +96,7 @@ public class JwtUtils {
             .signWith(SignatureAlgorithm.HS512, SECRET)
             .compact();
   }
+
   public String parseJwt(HttpServletRequest request) {
     String headerAuth = request.getHeader(JWT_HEADER_NAME);
     if (StringUtils.hasText(headerAuth) && headerAuth.startsWith(HEADER_PREFIX)) {
@@ -111,12 +110,11 @@ public class JwtUtils {
     return Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().getSubject();
   }
 
-
   private String getUserIssuerFromJwtToken(String token) {
     return Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().getIssuer();
   }
 
-  public boolean  validateJwtToken(String authToken) {
+  public boolean validateJwtToken(String authToken) {
     try {
       Jwts.parser().setSigningKey(SECRET).parseClaimsJws(authToken);
       return true;
@@ -135,17 +133,14 @@ public class JwtUtils {
   }
 
   public Long getAgentIdFromJwtToken(String token) {
-
     return Long.valueOf(Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().get("agent_id").toString());
   }
 
   public Long getAgencyIdFromJwtToken(String token) {
-
     return Long.valueOf(Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().get("agency_id").toString());
   }
 
   public Long getEntrepriseIdFromJwtToken(String token) {
-
     return Long.valueOf(Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().get("entreprise_id").toString());
   }
 }
