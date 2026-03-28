@@ -12,11 +12,10 @@ import org.example.forsapidev.entities.WalletManagement.Activity;
 import org.example.forsapidev.entities.WalletManagement.Transaction;
 import org.example.forsapidev.entities.WalletManagement.TransactionType;
 import org.example.forsapidev.entities.WalletManagement.Wallet;
-import org.example.forsapidev.entities.WalletManagement.WalletStatistics;
-import org.springframework.stereotype.Service;
+import org.example.forsapidev.DTO.WalletStatisticsDTO;import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -38,8 +37,9 @@ public class AccountServiceImpl implements AccountService {
         this.activityRepo = activityRepo;
     }
 
-    // 1️⃣ Create Account
+    // 1. Create Account
     @Override
+    @Transactional
     public Account createAccount(Long ownerId, String type) {
 
         Wallet wallet = new Wallet();
@@ -63,12 +63,21 @@ public class AccountServiceImpl implements AccountService {
         return savedAccount;
     }
 
-    // 2️⃣ Deposit
+    // 2. Deposit
     @Override
+    @Transactional
     public void deposit(Long accountId, BigDecimal amount) {
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Deposit amount must be positive");
+        }
 
         Account account = accountRepo.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        if (account.getStatus() == AccountStatus.BLOCKED) {
+            throw new RuntimeException("Account is blocked");
+        }
 
         Wallet wallet = account.getWallet();
         wallet.setBalance(wallet.getBalance().add(amount));
@@ -84,19 +93,23 @@ public class AccountServiceImpl implements AccountService {
         logActivity(wallet, "Deposit of " + amount);
     }
 
-    // 3️⃣ Withdraw
+    // 3. Withdraw
     @Override
+    @Transactional
     public void withdraw(Long accountId, BigDecimal amount) {
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Withdrawal amount must be positive");
+        }
 
         Account account = accountRepo.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        Wallet wallet = account.getWallet();
-
-        if (account.getType() == AccountType.INVESTMENT &&
-                account.getStatus() == AccountStatus.BLOCKED) {
-            throw new RuntimeException("Investment account is blocked");
+        if (account.getStatus() == AccountStatus.BLOCKED) {
+            throw new RuntimeException("Account is blocked");
         }
+
+        Wallet wallet = account.getWallet();
 
         if (wallet.getBalance().compareTo(amount) < 0) {
             throw new RuntimeException("Insufficient balance");
@@ -115,8 +128,9 @@ public class AccountServiceImpl implements AccountService {
         logActivity(wallet, "Withdrawal of " + amount);
     }
 
-    // 4️⃣ Monthly Interest (0.1%)
+    // 4. Monthly Interest (0.1%)
     @Override
+    @Transactional
     public void applyMonthlyInterest() {
 
         List<Account> accounts = accountRepo.findAll();
@@ -143,9 +157,18 @@ public class AccountServiceImpl implements AccountService {
         }
     }
 
-    // 5️⃣ Transfer
+    // 5. Transfer
     @Override
+    @Transactional
     public void transfer(Long fromWalletId, Long toWalletId, BigDecimal amount) {
+
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Transfer amount must be positive");
+        }
+
+        if (fromWalletId.equals(toWalletId)) {
+            throw new RuntimeException("Cannot transfer to the same wallet");
+        }
 
         Wallet from = walletRepo.findById(fromWalletId)
                 .orElseThrow(() -> new RuntimeException("Source wallet not found"));
@@ -158,41 +181,47 @@ public class AccountServiceImpl implements AccountService {
 
         from.setBalance(from.getBalance().subtract(amount));
         to.setBalance(to.getBalance().add(amount));
-
         walletRepo.save(from);
         walletRepo.save(to);
+
+        Transaction txOut = new Transaction();
+        txOut.setAmount(amount);
+        txOut.setDate(LocalDateTime.now());
+        txOut.setType(TransactionType.TRANSFER_OUT);
+        txOut.setWallet(from);
+        transactionRepo.save(txOut);
+
+        Transaction txIn = new Transaction();
+        txIn.setAmount(amount);
+        txIn.setDate(LocalDateTime.now());
+        txIn.setType(TransactionType.TRANSFER_IN);
+        txIn.setWallet(to);
+        transactionRepo.save(txIn);
 
         logActivity(from, "Transfer sent: " + amount + " to wallet " + toWalletId);
         logActivity(to, "Transfer received: " + amount + " from wallet " + fromWalletId);
     }
 
-    // 6️⃣ Statistics
+    // 6. Statistics
     @Override
-    public WalletStatistics getStatistics(Long walletId) {
+    public WalletStatisticsDTO getStatistics(Long walletId) {
 
         Wallet wallet = walletRepo.findById(walletId)
                 .orElseThrow(() -> new RuntimeException("Wallet not found"));
 
-        BigDecimal deposits = BigDecimal.ZERO;
-        BigDecimal withdrawals = BigDecimal.ZERO;
+        BigDecimal deposits = transactionRepo.sumByWalletAndType(walletId, TransactionType.DEPOSIT);
+        BigDecimal withdrawals = transactionRepo.sumByWalletAndType(walletId, TransactionType.WITHDRAW);
+        int totalCount = wallet.getTransactions() != null ? wallet.getTransactions().size() : 0;
 
-        for (Transaction t : wallet.getTransactions()) {
-            if (t.getType() == TransactionType.DEPOSIT) {
-                deposits = deposits.add(t.getAmount());
-            } else if (t.getType() == TransactionType.WITHDRAW) {
-                withdrawals = withdrawals.add(t.getAmount());
-            }
-        }
-
-        return new WalletStatistics(
+        return new WalletStatisticsDTO(
                 wallet.getBalance(),
                 deposits,
                 withdrawals,
-                wallet.getTransactions().size()
+                totalCount
         );
     }
 
-    // 7️⃣ Filter Transactions
+    // 7. Filter Transactions
     @Override
     public List<Transaction> filterTransactions(Long walletId, TransactionType type) {
 
@@ -205,7 +234,7 @@ public class AccountServiceImpl implements AccountService {
                 .toList();
     }
 
-    // 8️⃣ Activities
+    // 8. Activities
     @Override
     public List<Activity> getActivities(Long walletId) {
         return activityRepo.findByWallet_Id(walletId)
@@ -214,11 +243,11 @@ public class AccountServiceImpl implements AccountService {
                 .toList();
     }
 
-    // 🔧 Private helper
+    // Helper
     private void logActivity(Wallet wallet, String action) {
         Activity activity = new Activity();
         activity.setAction(action);
-        activity.setTimestamp(Timestamp.valueOf(LocalDateTime.now()).toLocalDateTime());
+        activity.setTimestamp(LocalDateTime.now());
         activity.setWallet(wallet);
         activityRepo.save(activity);
     }
