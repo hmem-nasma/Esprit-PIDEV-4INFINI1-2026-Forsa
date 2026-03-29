@@ -23,12 +23,14 @@ public class AccountController {
         this.accountService = accountService;
     }
 
+    // Create account
     @PostMapping("/create")
     public Account createAccount(@RequestParam Long ownerId,
                                  @RequestParam String type) {
         return accountService.createAccount(ownerId, type);
     }
 
+    // Deposit
     @PostMapping("/{id}/deposit")
     public String deposit(@PathVariable Long id,
                           @RequestParam BigDecimal amount) {
@@ -44,10 +46,10 @@ public class AccountController {
     }
 
     @PostMapping("/transfer")
-    public String transfer(@RequestParam Long fromWalletId,
-                           @RequestParam Long toWalletId,
+    public String transfer(@RequestParam("fromWalletId") Long fromAccountId,
+                           @RequestParam("toWalletId") Long toAccountId,
                            @RequestParam BigDecimal amount) {
-        accountService.transfer(fromWalletId, toWalletId, amount);
+        accountService.transfer(fromAccountId, toAccountId, amount);
         return "Transfer successful";
     }
 
@@ -57,15 +59,15 @@ public class AccountController {
         return "Monthly interest applied";
     }
 
+    // Statistics
     @GetMapping("/{id}/statistics")
     public WalletStatisticsDTO getStatistics(@PathVariable Long id) {
         return accountService.getStatistics(id);
     }
 
     @GetMapping("/{id}/transactions/filter")
-    public List<Transaction> filterTransactions(
-            @PathVariable Long id,
-            @RequestParam TransactionType type) {
+    public List<Transaction> filterTransactions(@PathVariable Long id,
+                                                @RequestParam TransactionType type) {
         return accountService.filterTransactions(id, type);
     }
 

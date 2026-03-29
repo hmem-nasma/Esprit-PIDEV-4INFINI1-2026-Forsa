@@ -11,19 +11,23 @@ import java.util.List;
 
 public interface AccountService {
 
+    // CRUD
     Account createAccount(Long ownerId, String type);
+    Account getAccount(Long accountId);
+    List<Account> getAccountsByOwner(Long ownerId);
+    List<Account> getAllAccounts();
+    Account updateAccountStatus(Long accountId, String status);
+    void deleteAccount(Long accountId);
 
+    // Operations
     void deposit(Long accountId, BigDecimal amount);
-
     void withdraw(Long accountId, BigDecimal amount);
-
+    void transfer(Long fromAccountId, Long toAccountId, BigDecimal amount);
     void applyMonthlyInterest();
 
-    void transfer(Long fromWalletId, Long toWalletId, BigDecimal amount);
-
-    WalletStatisticsDTO getStatistics(Long walletId);
-
-    List<Transaction> filterTransactions(Long walletId, TransactionType type);
-
-    List<Activity> getActivities(Long walletId);
+    // Queries
+    BigDecimal getBalance(Long accountId);
+    WalletStatisticsDTO getStatistics(Long accountId);
+    List<Transaction> filterTransactions(Long accountId, TransactionType type);
+    List<Activity> getActivities(Long accountId);
 }
