@@ -22,9 +22,6 @@ public class JwtUtils {
   @Autowired
   public UserRepository userRepository;
 
-
-
-
   private String JWT_HEADER_NAME = "Authorization";
   private String HEADER_PREFIX = "Bearer ";
   private final String SECRET = "ZwHqm8F3roWRnYjTJe5Zyw==";
@@ -38,42 +35,23 @@ public class JwtUtils {
           "/api/auth/**",
           "/api/test/**",
           "/v2/api-docs",
+          "/oauth2/**",
+          "/oauth2/**",
+          "/login/**",
+          "/error",
           "/swagger-resources",
-          "**/swagger-resources/**",
+          "*/swagger-resources/*",
           "/configuration/ui",
           "/configuration/**",
-          "**/swagger-ui.html/**",
+          "*/swagger-ui.html/*",
           "/swagger-ui.html",
           "/v3/api-docs/**",
-          "**/swagger-ui/**",
+          "*/swagger-ui/*",
           "/swagger-ui/**",
           "/v2/api-docs/**",
           "/api-docs/**",
-          // Insurance endpoints - for testing purposes
-          "/insurance-claim/**",
-          "/insurance-policy/**",
-          "/insurance-product/**",
-          "/premium-payment/**",
-          "/premium-reminder/**",
-          //insurance policy pdf endpoints
-          "/policy-pdf/**",
-          // Claims dashboard endpoint
-          "/claims-dashboard/**",
-          // Product comparison endpoints
-          "/product-comparison/**",
-          // Scoring Management endpoints
-          "/api/scoring/**",
-          "/api/recommendations/**",
-          "/api/rerating/**",
-          // Partnership Management endpoints
-          "/api/partners/**",
-          "/api/partner-transactions/**",
-          "/api/qr-code/**",
-          "/api/partner-reviews/**",
-          "/api/partner-analytics/**",
-          "/api/fraud-alerts/**",
-          "/api/cashback/**"
   };
+
   public String generatePinPassword() {
     int m = (int) Math.pow(10, 4 - 1);
     return ""+(m + new Random().nextInt(9 * m));
@@ -81,25 +59,19 @@ public class JwtUtils {
 
   public String generateJwtToken(Authentication authentication) {
     UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
-
     return Jwts.builder()
-            .setSubject((userPrincipal.getUsername()))
+            .setSubject(userPrincipal.getUsername())
+            .claim("role", userPrincipal.getAuthorities()
+                    .stream()
+                    .findFirst()
+                    .get()
+                    .getAuthority())
             .setIssuedAt(new Date())
             .setExpiration(new Date((new Date()).getTime() + SESSION_EXPIRATION))
             .signWith(SignatureAlgorithm.HS512, SECRET)
             .compact();
-
   }
 
-
-  public String parseJwt(HttpServletRequest request) {
-    String headerAuth = request.getHeader(JWT_HEADER_NAME);
-    if (StringUtils.hasText(headerAuth) && headerAuth.startsWith(HEADER_PREFIX)) {
-      return headerAuth.substring(7);
-    } else {
-      return null;
-    }
-  }
   public String generateJwtFromUsername(String username) {
     return Jwts.builder()
             .setSubject(username)
@@ -109,16 +81,24 @@ public class JwtUtils {
             .compact();
   }
 
+  public String parseJwt(HttpServletRequest request) {
+    String headerAuth = request.getHeader(JWT_HEADER_NAME);
+    if (StringUtils.hasText(headerAuth) && headerAuth.startsWith(HEADER_PREFIX)) {
+      return headerAuth.substring(7);
+    } else {
+      return null;
+    }
+  }
+
   public String getUserNameFromJwtToken(String token) {
     return Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().getSubject();
   }
-
 
   private String getUserIssuerFromJwtToken(String token) {
     return Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().getIssuer();
   }
 
-  public boolean  validateJwtToken(String authToken) {
+  public boolean validateJwtToken(String authToken) {
     try {
       Jwts.parser().setSigningKey(SECRET).parseClaimsJws(authToken);
       return true;
@@ -137,17 +117,14 @@ public class JwtUtils {
   }
 
   public Long getAgentIdFromJwtToken(String token) {
-
     return Long.valueOf(Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().get("agent_id").toString());
   }
 
   public Long getAgencyIdFromJwtToken(String token) {
-
     return Long.valueOf(Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().get("agency_id").toString());
   }
 
   public Long getEntrepriseIdFromJwtToken(String token) {
-
     return Long.valueOf(Jwts.parser().setSigningKey(SECRET).parseClaimsJws(token).getBody().get("entreprise_id").toString());
   }
 }
