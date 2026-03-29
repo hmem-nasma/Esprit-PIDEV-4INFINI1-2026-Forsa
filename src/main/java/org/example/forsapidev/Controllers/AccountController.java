@@ -23,11 +23,42 @@ public class AccountController {
         this.accountService = accountService;
     }
 
+    // ── CRUD ─────────────────────────────────────────────────────────────────
+
     @PostMapping("/create")
     public Account createAccount(@RequestParam Long ownerId,
                                  @RequestParam String type) {
         return accountService.createAccount(ownerId, type);
     }
+
+    @GetMapping("/{id}")
+    public Account getAccount(@PathVariable Long id) {
+        return accountService.getAccount(id);
+    }
+
+    @GetMapping("/all")
+    public List<Account> getAllAccounts() {
+        return accountService.getAllAccounts();
+    }
+
+    @GetMapping("/owner/{ownerId}")
+    public List<Account> getAccountsByOwner(@PathVariable Long ownerId) {
+        return accountService.getAccountsByOwner(ownerId);
+    }
+
+    @PutMapping("/{id}/status")
+    public Account updateStatus(@PathVariable Long id,
+                                @RequestParam String status) {
+        return accountService.updateAccountStatus(id, status);
+    }
+
+    @DeleteMapping("/{id}")
+    public String deleteAccount(@PathVariable Long id) {
+        accountService.deleteAccount(id);
+        return "Account deleted successfully";
+    }
+
+    // ── OPERATIONS ───────────────────────────────────────────────────────────
 
     @PostMapping("/{id}/deposit")
     public String deposit(@PathVariable Long id,
@@ -44,10 +75,10 @@ public class AccountController {
     }
 
     @PostMapping("/transfer")
-    public String transfer(@RequestParam Long fromWalletId,
-                           @RequestParam Long toWalletId,
+    public String transfer(@RequestParam Long fromAccountId,
+                           @RequestParam Long toAccountId,
                            @RequestParam BigDecimal amount) {
-        accountService.transfer(fromWalletId, toWalletId, amount);
+        accountService.transfer(fromAccountId, toAccountId, amount);
         return "Transfer successful";
     }
 
@@ -57,15 +88,21 @@ public class AccountController {
         return "Monthly interest applied";
     }
 
+    // ── QUERIES ──────────────────────────────────────────────────────────────
+
+    @GetMapping("/{id}/balance")
+    public BigDecimal getBalance(@PathVariable Long id) {
+        return accountService.getBalance(id);
+    }
+
     @GetMapping("/{id}/statistics")
     public WalletStatisticsDTO getStatistics(@PathVariable Long id) {
         return accountService.getStatistics(id);
     }
 
     @GetMapping("/{id}/transactions/filter")
-    public List<Transaction> filterTransactions(
-            @PathVariable Long id,
-            @RequestParam TransactionType type) {
+    public List<Transaction> filterTransactions(@PathVariable Long id,
+                                                @RequestParam TransactionType type) {
         return accountService.filterTransactions(id, type);
     }
 
