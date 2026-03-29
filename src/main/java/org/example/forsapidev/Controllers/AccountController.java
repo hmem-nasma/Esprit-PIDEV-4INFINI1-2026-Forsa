@@ -1,5 +1,6 @@
 package org.example.forsapidev.Controllers;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.example.forsapidev.DTO.WalletStatisticsDTO;
 import org.example.forsapidev.Services.Interfaces.AccountService;
 import org.example.forsapidev.entities.WalletManagement.Account;
@@ -13,6 +14,7 @@ import java.math.BigDecimal;
 import java.util.List;
 
 @RestController
+@SecurityRequirement(name = "Bearer Authentication")
 @RequestMapping("/api/accounts")
 public class AccountController {
 

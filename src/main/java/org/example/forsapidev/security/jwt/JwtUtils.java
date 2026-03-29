@@ -50,22 +50,6 @@ public class JwtUtils {
           "/swagger-ui/**",
           "/v2/api-docs/**",
           "/api-docs/**",
-          // Insurance endpoints - for testing purposes
-          "/insurance-claim/**",
-          "/insurance-policy/**",
-          "/insurance-product/**",
-          "/insurance-product/retrieve-all-insurance-products",
-          "/premium-payment/**",
-          "/premium-reminder/**",
-          //insurance policy pdf endpoints
-          "/policy-pdf/**",
-          // Claims dashboard endpoint
-          "/claims-dashboard/**",
-          // Product comparison endpoints
-          "/product-comparison/**",
-
-          //  Wallet endpoints
-          "/api/accounts/**"
   };
 
   public String generatePinPassword() {
