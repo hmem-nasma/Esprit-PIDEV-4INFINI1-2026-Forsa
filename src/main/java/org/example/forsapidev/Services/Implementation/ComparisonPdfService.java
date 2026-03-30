@@ -227,9 +227,9 @@ public class ComparisonPdfService implements IComparisonPdfService {
         String lowestPremium = findProductName(comparison, comparison.getLowestPremiumProductId());
         String highestCoverage = findProductName(comparison, comparison.getHighestCoverageProductId());
 
-        yPosition = addIndicator(contentStream, "⭐ Best Value:", bestValue, margin, yPosition);
-        yPosition = addIndicator(contentStream, "💰 Lowest Premium:", lowestPremium, margin, yPosition);
-        yPosition = addIndicator(contentStream, "🛡️ Highest Coverage:", highestCoverage, margin, yPosition);
+        yPosition = addIndicator(contentStream, "Best Value:", bestValue, margin, yPosition);
+        yPosition = addIndicator(contentStream, "Lowest Premium:", lowestPremium, margin, yPosition);
+        yPosition = addIndicator(contentStream, "Highest Coverage:", highestCoverage, margin, yPosition);
 
         return yPosition;
     }

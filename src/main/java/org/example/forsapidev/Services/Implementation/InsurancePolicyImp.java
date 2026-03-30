@@ -170,18 +170,12 @@ public class InsurancePolicyImp implements IInsurancePolicy {    InsurancePolicy
 
     @Override
     public InsurancePolicy addInsurancePolicy(InsurancePolicy policy) {
-        if (policy.getUser() != null && policy.getUser().getId() != null) {
-            User user = userRepository.findById(policy.getUser().getId()).orElse(null);
-            policy.setUser(user);
-        }
-
         if (policy.getInsuranceProduct() != null && policy.getInsuranceProduct().getId() != null) {
             InsuranceProduct product = insuranceProductRepository.findById(
                     policy.getInsuranceProduct().getId()
             ).orElse(null);
             policy.setInsuranceProduct(product);
         }
-
         return insurancePolicyRepository.save(policy);
     }
 

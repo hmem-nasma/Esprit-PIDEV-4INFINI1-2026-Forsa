@@ -26,7 +26,7 @@ public class IntegratedInsurancePolicyController {
      * 2. Calculate premium using actuarial formulas
      * 3. Create policy with all calculated values
      * 4. Generate premium payment schedule automatically
-     */
+*/
     @PostMapping("/apply")
     @PreAuthorize("hasAnyRole('AGENT', 'ADMIN')")
     public ResponseEntity<?> applyForInsurance(@RequestBody InsurancePolicyApplicationDTO application) {
