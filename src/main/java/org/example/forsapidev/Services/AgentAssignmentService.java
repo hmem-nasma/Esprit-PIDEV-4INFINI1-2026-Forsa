@@ -43,29 +43,22 @@ public class AgentAssignmentService {
             return null;
         }
 
-        // Vérifier si déjà assigné
         if (creditRequest.getAgentId() != null) {
             logger.info("Demande de crédit {} déjà assignée à l'agent {}",
                     creditRequest.getId(), creditRequest.getAgentId());
             return agentRepository.findById(creditRequest.getAgentId()).orElse(null);
         }
 
-        // Trouver un agent disponible avec verrou pessimiste
-        Optional<Agent> availableAgentOpt = agentRepository.findFirstAvailableAgentWithLock();
-
-        if (availableAgentOpt.isEmpty()) {
-            logger.warn("Aucun agent disponible pour assigner la demande de crédit {}",
-                    creditRequest.getId());
-            return null; // Retourne null au lieu de lancer une exception
+        List<Agent> availableAgents = agentRepository.findAvailableAgentsWithLock();
+        if (availableAgents == null || availableAgents.isEmpty()) {
+            logger.warn("Aucun agent disponible pour assigner la demande de crédit {}", creditRequest.getId());
+            return null;
         }
 
-        Agent agent = availableAgentOpt.get();
-
-        // Assigner la demande à l'agent
+        Agent agent = availableAgents.get(0);
         agent.assignRequest(creditRequest.getId());
         agentRepository.save(agent);
 
-        // Mettre à jour le creditRequest
         creditRequest.setAgentId(agent.getId());
         creditRequestRepository.save(creditRequest);
 
@@ -147,49 +140,92 @@ public class AgentAssignmentService {
     }
 
     /**
-     * Crée un nouvel agent
+     * Crée un nouvel agent en évitant les doublons pour un même user.
      */
     @Transactional
     public Agent createAgent(Agent agent) {
+        if (agent == null || agent.getUser() == null || agent.getUser().getId() == null) {
+            logger.warn("Création agent ignorée: agent/user invalide");
+            return null;
+        }
+
+        List<Agent> existingAgents = agentRepository.findByUserIdOrderByIdAsc(agent.getUser().getId());
+        if (existingAgents != null && !existingAgents.isEmpty()) {
+            Agent canonical = existingAgents.get(0);
+            canonical.setFullName(agent.getFullName() != null ? agent.getFullName() : canonical.getFullName());
+            canonical.setIsActive(agent.getIsActive() != null ? agent.getIsActive() : canonical.getIsActive());
+            canonical.setIsBusy(agent.getIsBusy() != null ? agent.getIsBusy() : canonical.getIsBusy());
+            canonical.setCurrentAssignedRequestId(agent.getCurrentAssignedRequestId());
+
+            if (existingAgents.size() > 1) {
+                for (int i = 1; i < existingAgents.size(); i++) {
+                    agentRepository.delete(existingAgents.get(i));
+                }
+                logger.warn("Doublons Agent nettoyés pour userId={} ({} lignes supprimées)",
+                        agent.getUser().getId(), existingAgents.size() - 1);
+            }
+
+            return agentRepository.save(canonical);
+        }
+
         return agentRepository.save(agent);
     }
 
     /**
-     * Active/désactive un agent
+     * Synchronise un agent existant pour un user donné en corrigeant les doublons éventuels.
      */
     @Transactional
-    public Agent toggleAgentActive(Long agentId, boolean active) {
-        Optional<Agent> agentOpt = agentRepository.findById(agentId);
-
-        if (agentOpt.isEmpty()) {
-            logger.error("Agent {} non trouvé", agentId);
+    public Agent syncSingleAgentForUser(Agent incoming) {
+        if (incoming == null || incoming.getUser() == null || incoming.getUser().getId() == null) {
             return null;
         }
 
-        Agent agent = agentOpt.get();
-        agent.setIsActive(active);
-
-        // Si on désactive un agent occupé, le libérer
-        if (!active && agent.getIsBusy()) {
-            agent.releaseRequest();
+        List<Agent> agents = agentRepository.findByUserIdOrderByIdAsc(incoming.getUser().getId());
+        if (agents.isEmpty()) {
+            return createAgent(incoming);
         }
 
-        agentRepository.save(agent);
+        Agent canonical = agents.get(0);
+        canonical.setFullName(incoming.getFullName() != null ? incoming.getFullName() : canonical.getFullName());
+        canonical.setIsActive(incoming.getIsActive() != null ? incoming.getIsActive() : canonical.getIsActive());
+        canonical.setIsBusy(incoming.getIsBusy() != null ? incoming.getIsBusy() : canonical.getIsBusy());
+        if (incoming.getCurrentAssignedRequestId() != null) {
+            canonical.setCurrentAssignedRequestId(incoming.getCurrentAssignedRequestId());
+        }
+        Agent saved = agentRepository.save(canonical);
 
-        logger.info("Agent {} {} ", agentId, active ? "activé" : "désactivé");
+        if (agents.size() > 1) {
+            for (int i = 1; i < agents.size(); i++) {
+                agentRepository.delete(agents.get(i));
+            }
+            logger.warn("Doublons Agent supprimés pour userId={} ({} doublons)", incoming.getUser().getId(), agents.size() - 1);
+        }
 
-        return agent;
+        return saved;
+    }
+
+    /**
+     * Vérifie et supprime tous les doublons d'agents pour un user.
+     */
+    @Transactional
+    public void deduplicateAgentsForUser(Long userId) {
+        if (userId == null) return;
+        List<Agent> agents = agentRepository.findByUserIdOrderByIdAsc(userId);
+        if (agents == null || agents.size() < 2) return;
+
+        for (int i = 1; i < agents.size(); i++) {
+            agentRepository.delete(agents.get(i));
+        }
+        logger.warn("Nettoyage doublons Agent exécuté pour userId={} : {} lignes supprimées", userId, agents.size() - 1);
     }
 
     /**
      * Assigne les crédits en attente (SUBMITTED) aux agents disponibles
-     * Appelé quand un agent se libère ou périodiquement
      */
     @Transactional
     public void assignPendingCreditsToAvailableAgents() {
         logger.info("Vérification des crédits en attente à assigner...");
 
-        // Récupérer les crédits en SUBMITTED (non assignés)
         List<CreditRequest> pendingCredits = creditRequestRepository.findAll().stream()
                 .filter(cr -> cr.getStatus() == org.example.forsapidev.entities.CreditManagement.CreditStatus.SUBMITTED
                         && cr.getAgentId() == null)
@@ -202,17 +238,14 @@ public class AgentAssignmentService {
 
         logger.info("Nombre de crédits en attente : {}", pendingCredits.size());
 
-        // Pour chaque crédit en attente, essayer de l'assigner
         for (CreditRequest credit : pendingCredits) {
             Agent assignedAgent = assignCreditRequestToAgent(credit);
             if (assignedAgent != null) {
-                // Si assigné, changer le statut en UNDER_REVIEW
                 credit.setStatus(org.example.forsapidev.entities.CreditManagement.CreditStatus.UNDER_REVIEW);
                 creditRequestRepository.save(credit);
                 logger.info("Crédit {} assigné à l'agent {} et passé en UNDER_REVIEW",
                         credit.getId(), assignedAgent.getId());
             } else {
-                // Aucun agent disponible, arrêter la boucle
                 logger.info("Plus d'agents disponibles, arrêt de l'assignation");
                 break;
             }
