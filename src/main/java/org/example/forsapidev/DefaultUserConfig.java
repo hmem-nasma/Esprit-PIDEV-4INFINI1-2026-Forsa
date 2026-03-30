@@ -18,7 +18,7 @@ import java.util.Set;
 @Configuration
 public class DefaultUserConfig {
 
-    @Bean
+    //@Bean
     public CommandLineRunner createDefaultUser(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder passwordEncoder) {
         return args -> {
 

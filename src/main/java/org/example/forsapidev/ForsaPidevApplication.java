@@ -8,7 +8,7 @@ import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilde
 import org.springframework.context.annotation.Bean;
 
 @SpringBootApplication
-public class ForsaPidevApplication {
+public class    ForsaPidevApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(ForsaPidevApplication.class, args);
