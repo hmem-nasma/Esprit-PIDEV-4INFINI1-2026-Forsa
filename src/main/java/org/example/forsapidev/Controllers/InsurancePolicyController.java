@@ -3,18 +3,25 @@ package org.example.forsapidev.Controllers;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.example.forsapidev.DTO.InsurancePolicyApplicationDTO;
 import org.example.forsapidev.Repositories.UserRepository;
+import org.example.forsapidev.Services.Interfaces.IAmortizationPdfService;
 import org.example.forsapidev.entities.InsuranceManagement.InsurancePolicy;
 import org.example.forsapidev.Services.Interfaces.IInsurancePolicy;
 import lombok.AllArgsConstructor;
 import org.example.forsapidev.entities.InsuranceManagement.PolicyStatus;
 import org.example.forsapidev.entities.UserManagement.User;
 import org.example.forsapidev.security.services.UserDetailsImpl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -25,7 +32,8 @@ import java.util.List;
 public class InsurancePolicyController {
 
     IInsurancePolicy insurancePolicyService;
-    UserRepository userRepository;  // ← ADD THIS
+    UserRepository userRepository;
+    private final IAmortizationPdfService amortizationPdfService;
 
     /**
      * CLIENT: Submit policy application
@@ -65,7 +73,6 @@ public class InsurancePolicyController {
     }
     /**
      * AGENT: Approve/reject policy
-     * Simple parameters - no DTO needed
      */
     @PutMapping("/agent-review/{policy-id}")
     @PreAuthorize("hasAnyRole('AGENT', 'ADMIN')")
@@ -83,8 +90,6 @@ public class InsurancePolicyController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
-
-    // ========== EXISTING METHODS (Keep as-is) ==========
 
     @GetMapping("/retrieve-all-insurance-policies")
     @PreAuthorize("hasAnyRole('AGENT', 'ADMIN')")
@@ -106,7 +111,10 @@ public class InsurancePolicyController {
 
     @PostMapping("/add-insurance-policy")
     @PreAuthorize("hasAnyRole('CLIENT', 'AGENT', 'ADMIN')")
-    public InsurancePolicy addInsurancePolicy(@RequestBody InsurancePolicy policy) {
+    public InsurancePolicy addInsurancePolicy(@RequestBody InsurancePolicy policy, @AuthenticationPrincipal UserDetails userDetails) {
+        User connectedUser = userRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        policy.setUser(connectedUser);
         return insurancePolicyService.addInsurancePolicy(policy);
     }
 
@@ -114,5 +122,23 @@ public class InsurancePolicyController {
     @PreAuthorize("hasAnyRole('AGENT', 'ADMIN')")
     public InsurancePolicy modifyInsurancePolicy(@RequestBody InsurancePolicy policy) {
         return insurancePolicyService.modifyInsurancePolicy(policy);
+    }
+
+    @GetMapping("/download-amortization/{policy-id}")
+    @PreAuthorize("hasAnyRole('CLIENT', 'AGENT', 'ADMIN')")
+    public ResponseEntity<byte[]> downloadAmortizationSchedule(@PathVariable("policy-id") Long policyId) {
+        try {
+            ByteArrayOutputStream pdfStream = amortizationPdfService.generateAmortizationTablePdf(policyId);
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "Amortization_Schedule_Policy_" + policyId + ".pdf");
+
+            return new ResponseEntity<>(pdfStream.toByteArray(), headers, HttpStatus.OK);
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(("Error generating PDF: " + e.getMessage()).getBytes());
+        }
     }
 }
