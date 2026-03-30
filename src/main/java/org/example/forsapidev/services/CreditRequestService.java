@@ -38,19 +38,22 @@ public class CreditRequestService {
     private final AmortizationCalculatorService amortizationCalculatorService;
     private final CreditScoringService creditScoringService;
     private final UnifiedCreditAnalysisService unifiedCreditAnalysisService;
+    private final AgentAssignmentService agentAssignmentService;
 
     public CreditRequestService(CreditRequestRepository creditRequestRepository,
                                 RepaymentScheduleRepository repaymentScheduleRepository,
                                 InterestRateEngineService interestRateEngineService,
                                 AmortizationCalculatorService amortizationCalculatorService,
                                 CreditScoringService creditScoringService,
-                                UnifiedCreditAnalysisService unifiedCreditAnalysisService) {
+                                UnifiedCreditAnalysisService unifiedCreditAnalysisService,
+                                AgentAssignmentService agentAssignmentService) {
         this.creditRequestRepository = creditRequestRepository;
         this.repaymentScheduleRepository = repaymentScheduleRepository;
         this.interestRateEngineService = interestRateEngineService;
         this.amortizationCalculatorService = amortizationCalculatorService;
         this.creditScoringService = creditScoringService;
         this.unifiedCreditAnalysisService = unifiedCreditAnalysisService;
+        this.agentAssignmentService = agentAssignmentService;
     }
 
     // Create a credit request and generate repayment schedules automatically
@@ -67,29 +70,26 @@ public class CreditRequestService {
             request.setInterestRate(finalRatePercent.doubleValue());
         }
 
-        // Sauvegarde initiale pour obtenir un ID
+        request.setStatus(CreditStatus.SUBMITTED);
         CreditRequest savedRequest = creditRequestRepository.save(request);
 
-        // Scoring IA automatique lors de la création
         try {
             logger.info("Lancement du scoring IA pour la demande de crédit ID={}", savedRequest.getId());
             creditScoringService.scoreCredit(savedRequest);
-
-            // Mise à jour du statut en fonction du scoring
-            savedRequest.setStatus(CreditStatus.UNDER_REVIEW);
             savedRequest = creditRequestRepository.save(savedRequest);
-
-            logger.info("Demande de crédit créée avec succès - ID={}, Risque={}",
-                       savedRequest.getId(),
-                       savedRequest.getRiskLevel());
+            logger.info("Demande de crédit scorée - ID={}, Risque={}", savedRequest.getId(), savedRequest.getRiskLevel());
         } catch (ScoringServiceException e) {
-            // Si le scoring échoue, on laisse la demande en SUBMITTED
-            logger.warn("Le scoring IA a échoué pour la demande ID={} - Demande laissée en statut SUBMITTED pour revue manuelle : {}",
-                       savedRequest.getId(), e.getMessage());
-            // On ne bloque pas la création, l'agent pourra décider manuellement
+            logger.warn("Le scoring IA a échoué pour la demande ID={} - Demande laissée en statut SUBMITTED pour revue manuelle : {}", savedRequest.getId(), e.getMessage());
         }
 
-        return savedRequest;
+        // Tentative d'affectation automatique; si aucun agent dispo, le crédit reste SUBMITTED.
+        try {
+            agentAssignmentService.assignPendingCreditsToAvailableAgents();
+            return creditRequestRepository.findById(savedRequest.getId()).orElse(savedRequest);
+        } catch (Exception e) {
+            logger.warn("Affectation automatique impossible pour la demande ID={} : {}", savedRequest.getId(), e.getMessage());
+            return savedRequest;
+        }
     }
 
     /**
@@ -124,9 +124,8 @@ public class CreditRequestService {
             User authenticatedUser) {
 
         logger.info("🚀 Création d'une demande de crédit avec rapport médical pour l'utilisateur {} avec montant {}",
-                   authenticatedUser.getUsername(), amountRequested);
+                authenticatedUser.getUsername(), amountRequested);
 
-        // Création de la demande de crédit
         CreditRequest request = new CreditRequest();
         request.setAmountRequested(amountRequested);
         request.setDurationMonths(durationMonths);
@@ -134,52 +133,37 @@ public class CreditRequestService {
         request.setStatus(CreditStatus.SUBMITTED);
         request.setRequestDate(ZonedDateTime.now(ZoneId.systemDefault()).toLocalDateTime());
 
-        // Type de calcul
         try {
             request.setTypeCalcul(AmortizationType.valueOf(typeCalculStr));
         } catch (IllegalArgumentException e) {
             request.setTypeCalcul(AmortizationType.AMORTISSEMENT_CONSTANT);
         }
 
-        // Calcul du taux d'intérêt de base (avant ajustement assurance)
         BigDecimal baseRate = interestRateEngineService.computeAnnualRatePercent(
                 request.getRequestDate(), durationMonths, null, null);
         request.setInterestRate(baseRate.doubleValue());
 
-        // Sauvegarde initiale
         CreditRequest savedRequest = creditRequestRepository.save(request);
 
         try {
-            // Analyse unifiée : fraude + assurance via API Python
             logger.info("📡 Appel de l'API Python unifiée pour l'analyse crédit complète...");
             savedRequest = unifiedCreditAnalysisService.analyzeCredit(savedRequest, healthReport);
 
-            // Ajustement du taux d'intérêt en fonction de l'assurance
             if (!savedRequest.getInsuranceIsReject() && savedRequest.getInsuranceRate() != null) {
-                // Le taux d'intérêt final inclut le taux d'assurance
                 double finalRate = baseRate.doubleValue() + savedRequest.getInsuranceRate().doubleValue();
                 savedRequest.setInterestRate(finalRate);
-
-                logger.info("💹 Taux d'intérêt ajusté : Base={}%, Assurance={}%, Final={}%",
-                           baseRate, savedRequest.getInsuranceRate(), finalRate);
+                logger.info("💹 Taux d'intérêt ajusté : Base={}%, Assurance={}%, Final={}%", baseRate, savedRequest.getInsuranceRate(), finalRate);
             }
 
-            // Mise à jour du statut
-            savedRequest.setStatus(CreditStatus.UNDER_REVIEW);
+            // IMPORTANT: rester SUBMITTED tant qu'aucun agent n'est affecté.
+            savedRequest.setStatus(CreditStatus.SUBMITTED);
             savedRequest = creditRequestRepository.save(savedRequest);
 
-            logger.info("✅ Demande de crédit créée avec succès - ID={}", savedRequest.getId());
-            logger.info("   📊 Risque fraude : {} ({})",
-                       savedRequest.getRiskLevel(), savedRequest.getIsRisky() ? "RISKY" : "SAFE");
-            logger.info("   🏥 Assurance : {}",
-                       savedRequest.getInsuranceIsReject() ? "REJETÉE" : "Approuvée - Taux " + savedRequest.getInsuranceRate() + "%");
-            logger.info("   🎯 Décision globale : {}", savedRequest.getGlobalDecision());
-
-            return savedRequest;
+            agentAssignmentService.assignPendingCreditsToAvailableAgents();
+            return creditRequestRepository.findById(savedRequest.getId()).orElse(savedRequest);
 
         } catch (Exception e) {
             logger.error("❌ Échec de l'analyse crédit unifiée : {}", e.getMessage(), e);
-            // En cas d'échec, on laisse la demande en SUBMITTED pour revue manuelle
             savedRequest.setStatus(CreditStatus.SUBMITTED);
             creditRequestRepository.save(savedRequest);
             throw new RuntimeException("Erreur lors de l'analyse crédit : " + e.getMessage(), e);
@@ -296,7 +280,16 @@ public class CreditRequestService {
         // - Scoring si nécessaire
         // - Passage en APPROVED
         // - Génération des échéances
-        return validateCredit(id);
+        CreditRequest approved = validateCredit(id);
+
+        // L'agent se libère après sa décision
+        if (approved.getAgentId() != null) {
+            agentAssignmentService.releaseAgent(approved.getAgentId());
+        } else {
+            agentAssignmentService.releaseAgentForCreditRequest(id);
+        }
+
+        return approved;
     }
 
     /**
@@ -318,6 +311,13 @@ public class CreditRequestService {
         // TODO: Ajouter un champ "rejectionReason" dans CreditRequest si besoin de tracer la raison
         credit.setStatus(CreditStatus.DEFAULTED); // Ou créer un nouveau statut REJECTED
         CreditRequest rejected = creditRequestRepository.save(credit);
+
+        // L'agent se libère après sa décision
+        if (rejected.getAgentId() != null) {
+            agentAssignmentService.releaseAgent(rejected.getAgentId());
+        } else {
+            agentAssignmentService.releaseAgentForCreditRequest(id);
+        }
 
         logger.info("Crédit ID={} rejeté par l'agent - Risque : {}, Raison : {}",
                    id, credit.getRiskLevel(), reason);
