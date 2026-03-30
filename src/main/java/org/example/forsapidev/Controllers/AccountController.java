@@ -1,5 +1,6 @@
 package org.example.forsapidev.Controllers;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import org.example.forsapidev.DTO.AccountTypeAdviceDTO;
 import org.example.forsapidev.DTO.AdaptiveInterestResultDTO;
 import org.example.forsapidev.DTO.WalletForecastDTO;
@@ -10,6 +11,7 @@ import org.example.forsapidev.entities.WalletManagement.Activity;
 import org.example.forsapidev.entities.WalletManagement.Transaction;
 import org.example.forsapidev.entities.WalletManagement.TransactionType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
@@ -26,17 +28,54 @@ public class AccountController {
         this.accountService = accountService;
     }
 
-    // ── CRUD ─────────────────────────────────────────────────────────────────
-
+    // Create account - accessible to all authenticated users
+    @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/create")
     public Account createAccount(@RequestParam Long ownerId,
-                                 @RequestParam String type,
-                                 @RequestParam String holderName) {  // ← ajouté
-        return accountService.createAccount(ownerId, type, holderName);
+                                 @RequestParam String type) {
+        return accountService.createAccount(ownerId, type);
     }
 
-    // ── OPERATIONS ───────────────────────────────────────────────────────────
+    // Get all accounts - ADMIN ONLY
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/all")
+    public List<Account> getAllAccounts() {
+        return accountService.getAllAccounts();
+    }
 
+    // Get single account
+    @SecurityRequirement(name = "Bearer Authentication")
+    @GetMapping("/{id}")
+    public Account getAccount(@PathVariable Long id) {
+        return accountService.getAccount(id);
+    }
+
+    // Delete account - ADMIN ONLY
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{id}")
+    public String deleteAccount(@PathVariable Long id) {
+        accountService.deleteAccount(id);
+        return "Account deleted successfully";
+    }
+
+    // Update account status - ADMIN ONLY
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}/status")
+    public Account updateAccountStatus(@PathVariable Long id,
+                                       @RequestParam String status) {
+        return accountService.updateAccountStatus(id, status);
+    }
+
+    // Get accounts by owner
+    @SecurityRequirement(name = "Bearer Authentication")
+    @GetMapping("/owner/{ownerId}")
+    public List<Account> getAccountsByOwner(@PathVariable Long ownerId) {
+        return accountService.getAccountsByOwner(ownerId);
+    }
+    @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/{id}/deposit")
     public String deposit(@PathVariable Long id,
                           @RequestParam BigDecimal amount) {
@@ -44,6 +83,7 @@ public class AccountController {
         return "Deposit successful";
     }
 
+    @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/{id}/withdraw")
     public String withdraw(@PathVariable Long id,
                            @RequestParam BigDecimal amount) {
@@ -51,6 +91,7 @@ public class AccountController {
         return "Withdrawal successful";
     }
 
+    @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/transfer")
     public String transfer(@RequestParam Long fromAccountId,
                            @RequestParam Long toAccountId,
@@ -59,19 +100,22 @@ public class AccountController {
         return "Transfer successful";
     }
 
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/apply-interest")
     public String applyMonthlyInterest() {
         accountService.applyMonthlyInterest();
         return "Monthly interest applied";
     }
 
-    // ── QUERIES ──────────────────────────────────────────────────────────────
-
+    // Statistics
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{id}/statistics")
     public WalletStatisticsDTO getStatistics(@PathVariable Long id) {
         return accountService.getStatistics(id);
     }
 
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{id}/transactions/filter")
     public List<Transaction> filterTransactions(
             @PathVariable Long id,
@@ -79,6 +123,7 @@ public class AccountController {
         return accountService.filterTransactions(id, type);
     }
 
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{id}/activities")
     public List<Activity> getActivities(@PathVariable Long id) {
         return accountService.getActivities(id);
@@ -86,6 +131,7 @@ public class AccountController {
 
     // ── IA ───────────────────────────────────────────────────────────────────
 
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{id}/forecast")
     public WalletForecastDTO forecastBalance(
             @PathVariable Long id,
@@ -93,12 +139,14 @@ public class AccountController {
         return accountService.forecastBalance(id, days);
     }
 
+    @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/{id}/adaptive-interest")
     public AdaptiveInterestResultDTO applyAdaptiveInterest(
             @PathVariable Long id) {
         return accountService.applyAdaptiveInterest(id);
     }
 
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{id}/account-type-advice")
     public AccountTypeAdviceDTO adviseAccountType(@PathVariable Long id) {
         return accountService.adviseAccountType(id);
