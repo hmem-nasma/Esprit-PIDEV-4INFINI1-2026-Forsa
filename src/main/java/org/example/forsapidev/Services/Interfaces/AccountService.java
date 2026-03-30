@@ -8,14 +8,18 @@ import org.example.forsapidev.entities.WalletManagement.Account;
 import org.example.forsapidev.entities.WalletManagement.Activity;
 import org.example.forsapidev.entities.WalletManagement.Transaction;
 import org.example.forsapidev.entities.WalletManagement.TransactionType;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
 
 public interface AccountService {
 
-    // ── CRUD ─────────────────────────────────────────────────────────────────
-    Account createAccount(Long ownerId, String type, String holderName);    Account getAccount(Long accountId);
+
+    @Transactional
+    Account createAccount(Long ownerId, String type);
+
+    Account getAccount(Long accountId);
     List<Account> getAccountsByOwner(Long ownerId);
     List<Account> getAllAccounts();
     Account updateAccountStatus(Long accountId, String status);

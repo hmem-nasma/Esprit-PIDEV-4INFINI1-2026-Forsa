@@ -1,6 +1,5 @@
 package org.example.forsapidev.Services.Implementation;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.forsapidev.DTO.AccountTypeAdviceDTO;
 import org.example.forsapidev.DTO.AdaptiveInterestResultDTO;
@@ -8,7 +7,6 @@ import org.example.forsapidev.DTO.WalletForecastDTO;
 import org.example.forsapidev.DTO.WalletStatisticsDTO;
 import org.example.forsapidev.Repositories.*;
 import org.example.forsapidev.Services.Interfaces.AccountService;
-import org.example.forsapidev.entities.UserManagement.User;
 import org.example.forsapidev.entities.WalletManagement.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -69,8 +67,8 @@ public class AccountServiceImpl implements AccountService {
         transactionRepo.save(tx);
     }
 
-    @Override
     @Transactional
+    @Override
     public Account createAccount(Long ownerId, String type) {
         Wallet wallet = new Wallet();
         wallet.setOwnerId(ownerId);
