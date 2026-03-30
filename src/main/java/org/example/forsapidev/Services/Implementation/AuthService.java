@@ -3,6 +3,7 @@ package org.example.forsapidev.Services.Implementation;
 
 import org.example.forsapidev.Repositories.RoleRepository;
 import org.example.forsapidev.Repositories.UserRepository;
+import org.example.forsapidev.Services.AgentRegistryService;
 import org.example.forsapidev.Services.Interfaces.IAuthService;
 import org.example.forsapidev.Utils.EmailEncryptionUtil;
 import org.example.forsapidev.entities.UserManagement.Role;
@@ -48,6 +49,8 @@ class AuthService implements IAuthService {
     EmailSenderService emailSenderService;
     @Autowired
     PasswordEncoder encoder;
+    @Autowired
+    AgentRegistryService agentRegistryService;
     @Override
     public ResponseEntity<?> authenticateUser(LoginRequest loginRequest) {
         if (userRepository.existsByUsername(loginRequest.getUsername())) {
@@ -106,6 +109,14 @@ class AuthService implements IAuthService {
                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
         user.setRole(role);
         userRepository.save(user);
+
+        // Synchronisation AGENT (si le rôle choisi est AGENT)
+        try {
+            agentRegistryService.syncAgentForUser(user.getId());
+        } catch (Exception ignored) {
+            // ne pas bloquer l'inscription si la sync agent échoue
+        }
+
         String request = "http://localhost:4200/pages/validateUser/";
         String subject ="Verification of your email";
         String imagePath = "classpath:static/uploads/logoforsa.png";
@@ -200,6 +211,13 @@ class AuthService implements IAuthService {
         }
         user.setIsActive(true);
         userRepository.save(user);
+
+        // Si user est AGENT, refléter isActive dans table agent
+        try {
+            agentRegistryService.syncAgentForUser(user.getId());
+        } catch (Exception ignored) {
+        }
+
         return ResponseEntity
                 .ok(new MessageResponse("Your email address has been successfully verified. You can now access your account"));
     }

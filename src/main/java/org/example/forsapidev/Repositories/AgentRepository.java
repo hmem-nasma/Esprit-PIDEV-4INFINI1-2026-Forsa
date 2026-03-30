@@ -29,7 +29,7 @@ public interface AgentRepository extends JpaRepository<Agent, Long> {
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT a FROM Agent a WHERE a.isActive = true AND a.isBusy = false ORDER BY a.id")
-    Optional<Agent> findFirstAvailableAgentWithLock();
+    List<Agent> findAvailableAgentsWithLock();
 
     /**
      * Trouve tous les agents actifs
@@ -45,5 +45,9 @@ public interface AgentRepository extends JpaRepository<Agent, Long> {
      * Trouve l'agent assigné à une demande spécifique
      */
     Optional<Agent> findByCurrentAssignedRequestId(Long requestId);
-}
 
+    /**
+     * Trouve plusieurs agents par leur user ID, triés par ID croissant
+     */
+    List<Agent> findByUserIdOrderByIdAsc(Long userId);
+}
