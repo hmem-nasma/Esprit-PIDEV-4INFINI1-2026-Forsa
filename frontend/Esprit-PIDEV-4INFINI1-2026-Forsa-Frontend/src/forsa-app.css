@@ -31,6 +31,7 @@
   border: none;
   box-shadow: 0 25px 50px -12px color-mix(in oklab, var(--color-primary) 12%, transparent);
   background: color-mix(in oklab, var(--color-card) 80%, transparent);
+  -webkit-backdrop-filter: blur(16px);
   backdrop-filter: blur(16px);
 }
 
@@ -68,6 +69,12 @@ textarea.forsa-input {
   color: var(--color-foreground);
   outline: none;
   transition: box-shadow 0.15s ease;
+}
+
+.forsa-input::placeholder,
+textarea.forsa-input::placeholder {
+  color: var(--color-muted-foreground);
+  opacity: 0.9;
 }
 
 .forsa-input:focus-visible,

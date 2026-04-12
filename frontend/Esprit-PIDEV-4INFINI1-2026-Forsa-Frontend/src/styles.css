@@ -1,3 +1,5 @@
+@import './forsa-app.css';
+
 /* Forsa brand tokens (logo: navy + teal → lime → gold) */
 :root {
   --font-sans: 'Poppins', ui-sans-serif, system-ui, sans-serif;
