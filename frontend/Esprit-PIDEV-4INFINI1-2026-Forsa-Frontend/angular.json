@@ -27,8 +27,7 @@
               }
             ],
             "styles": [
-              "src/styles.css",
-              "src/forsa-app.css"
+              "src/styles.css"
             ],
             "scripts": []
           },
@@ -86,8 +85,7 @@
               }
             ],
             "styles": [
-              "src/styles.css",
-              "src/forsa-app.css"
+              "src/styles.css"
             ],
             "scripts": []
           }

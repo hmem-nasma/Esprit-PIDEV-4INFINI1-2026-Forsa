@@ -31,7 +31,15 @@
               </div>
               <div>
                 <label class="forsa-label" for="reg-user">Username</label>
-                <input id="reg-user" forsaInput name="username" [(ngModel)]="username" class="input-h-12" required />
+                <input
+                  id="reg-user"
+                  forsaInput
+                  name="username"
+                  [(ngModel)]="username"
+                  placeholder="Choose a username"
+                  class="input-h-12"
+                  required
+                />
               </div>
               <div>
                 <label class="forsa-label" for="reg-email">Email</label>
@@ -47,14 +55,13 @@
                 />
               </div>
               <div>
-                <label class="forsa-label" for="reg-pw">Password</label>
-                <input
-                  id="reg-pw"
-                  forsaInput
-                  type="password"
+                <app-forsa-password-field
+                  inputId="reg-pw"
                   name="password"
                   [(ngModel)]="password"
-                  class="input-h-12"
+                  autocomplete="new-password"
+                  placeholder="At least 6 characters"
+                  inputClass="input-h-12"
                   required
                 />
               </div>

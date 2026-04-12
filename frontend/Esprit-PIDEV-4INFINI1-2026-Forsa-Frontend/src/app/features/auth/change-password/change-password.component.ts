@@ -6,12 +6,12 @@ import { environment } from '../../../../environments/environment';
 import type { MessageResponse } from '../../../core/models/auth.model';
 import { ForsaButtonComponent } from '../../../shared/ui/forsa-button/forsa-button.component';
 import { ForsaCardComponent } from '../../../shared/ui/forsa-card/forsa-card.component';
-import { ForsaInputDirective } from '../../../shared/directives/forsa-input.directive';
+import { ForsaPasswordFieldComponent } from '../../../shared/ui/forsa-password-field/forsa-password-field.component';
 
 @Component({
   selector: 'app-change-password',
   standalone: true,
-  imports: [FormsModule, RouterLink, ForsaCardComponent, ForsaButtonComponent, ForsaInputDirective],
+  imports: [FormsModule, RouterLink, ForsaCardComponent, ForsaButtonComponent, ForsaPasswordFieldComponent],
   templateUrl: './change-password.component.html',
   styleUrl: './change-password.component.css',
 })

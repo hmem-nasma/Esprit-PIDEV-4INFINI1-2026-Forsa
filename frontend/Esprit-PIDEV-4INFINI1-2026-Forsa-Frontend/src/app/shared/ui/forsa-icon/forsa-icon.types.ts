@@ -35,4 +35,6 @@ export type ForsaIconName =
   | 'shield-alert'
   | 'shield-check'
   | 'trending-down'
-  | 'trending-up';
+  | 'trending-up'
+  | 'eye'
+  | 'eye-off';

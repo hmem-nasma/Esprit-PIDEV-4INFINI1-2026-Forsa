@@ -29,16 +29,13 @@
               />
             </div>
             <div>
-              <label class="forsa-label" for="login-password">Password</label>
-              <input
-                id="login-password"
-                forsaInput
-                type="password"
+              <app-forsa-password-field
+                inputId="login-password"
                 name="password"
                 [(ngModel)]="password"
                 autocomplete="current-password"
                 placeholder="Enter your password"
-                class="input-h-12"
+                inputClass="input-h-12"
                 required
               />
               <div class="forgot-password-row">
@@ -72,4 +69,3 @@
       Secured by Forsa
     </div>
   </div>
-</div>

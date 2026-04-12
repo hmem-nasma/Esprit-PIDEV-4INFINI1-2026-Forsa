@@ -8,6 +8,7 @@ import { ForsaButtonComponent } from '../../../shared/ui/forsa-button/forsa-butt
 import { ForsaCardComponent } from '../../../shared/ui/forsa-card/forsa-card.component';
 import { ForsaIconComponent } from '../../../shared/ui/forsa-icon/forsa-icon.component';
 import { ForsaInputDirective } from '../../../shared/directives/forsa-input.directive';
+import { ForsaPasswordFieldComponent } from '../../../shared/ui/forsa-password-field/forsa-password-field.component';
 
 @Component({
   selector: 'app-register',
@@ -20,6 +21,7 @@ import { ForsaInputDirective } from '../../../shared/directives/forsa-input.dire
     ForsaCardComponent,
     ForsaIconComponent,
     ForsaInputDirective,
+    ForsaPasswordFieldComponent,
   ],
   templateUrl: './register.component.html',
   styleUrl: './register.component.css',
