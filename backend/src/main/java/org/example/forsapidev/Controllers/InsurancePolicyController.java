@@ -29,6 +29,7 @@ import java.util.List;
 @AllArgsConstructor
 @SecurityRequirement(name = "Bearer Authentication")
 @RequestMapping("/api/insurance-policy")
+@CrossOrigin(origins = "*")
 public class InsurancePolicyController {
 
     IInsurancePolicy insurancePolicyService;

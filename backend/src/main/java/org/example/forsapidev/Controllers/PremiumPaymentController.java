@@ -13,6 +13,7 @@ import java.util.List;
 @AllArgsConstructor
 @SecurityRequirement(name = "Bearer Authentication")
 @RequestMapping("/api/premium-payment")
+@CrossOrigin(origins = "*")
 public class PremiumPaymentController {
 
     IPremiumPayment premiumPaymentService;
