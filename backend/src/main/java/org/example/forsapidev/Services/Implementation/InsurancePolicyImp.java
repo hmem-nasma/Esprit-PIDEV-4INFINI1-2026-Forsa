@@ -186,6 +186,29 @@ public class InsurancePolicyImp implements IInsurancePolicy {    InsurancePolicy
 
     @Override
     public InsurancePolicy modifyInsurancePolicy(InsurancePolicy policy) {
+        InsurancePolicy existing = insurancePolicyRepository.findById(policy.getId()).orElse(null);
+        if (existing != null) {
+            existing.setPolicyNumber(policy.getPolicyNumber());
+            existing.setPremiumAmount(policy.getPremiumAmount());
+            existing.setCoverageLimit(policy.getCoverageLimit());
+            existing.setStartDate(policy.getStartDate());
+            existing.setEndDate(policy.getEndDate());
+            existing.setNextPremiumDueDate(policy.getNextPremiumDueDate());
+            existing.setStatus(policy.getStatus());
+            existing.setPurePremium(policy.getPurePremium());
+            existing.setInventoryPremium(policy.getInventoryPremium());
+            existing.setCommercialPremium(policy.getCommercialPremium());
+            existing.setFinalPremium(policy.getFinalPremium());
+            existing.setRiskScore(policy.getRiskScore());
+            existing.setRiskCategory(policy.getRiskCategory());
+            existing.setRiskCoefficient(policy.getRiskCoefficient());
+            existing.setPaymentFrequency(policy.getPaymentFrequency());
+            existing.setPeriodicPaymentAmount(policy.getPeriodicPaymentAmount());
+            existing.setNumberOfPayments(policy.getNumberOfPayments());
+            existing.setEffectiveAnnualRate(policy.getEffectiveAnnualRate());
+            existing.setCalculationNotes(policy.getCalculationNotes());
+            return insurancePolicyRepository.save(existing);
+        }
         return insurancePolicyRepository.save(policy);
     }
 
