@@ -55,7 +55,6 @@ export class RegisterComponent {
       },
     });
   }
-
   submit(): void {
     if (!this.termsAccepted) {
       this.error.set('Please accept the terms to continue.');

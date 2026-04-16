@@ -49,7 +49,6 @@ export class LoginComponent {
       },
     });
   }
-
   submit(): void {
     if (!this.username.trim() || !this.password) {
       this.error.set('Please enter your username and password.');

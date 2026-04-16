@@ -59,7 +59,6 @@ export class AuthService {
       tap((u) => this.currentUser.set(u)),
     );
   }
-
   /** Sends a reset link to the given email (backend `POST /auth/ForgottenPassword`). */
   requestPasswordReset(email: string): Observable<MessageResponse> {
     return this.http.post<MessageResponse>(`${environment.apiBaseUrl}/auth/ForgottenPassword`, { email });
