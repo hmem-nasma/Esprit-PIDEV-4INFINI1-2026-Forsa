@@ -2,7 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import type { ManagedUser } from '../models/user-admin.model';
+import type { ManagedUser, UserDashboardOverview } from '../models/user-admin.model';
 import type { MessageResponse, SignupPayload } from '../models/auth.model';
 
 @Injectable({ providedIn: 'root' })
@@ -11,6 +11,11 @@ export class UserAdminService {
 
   listUsers(): Observable<ManagedUser[]> {
     return this.http.get<ManagedUser[]>(`${environment.apiBaseUrl}/user/all`);
+  }
+
+  /** Admin / agent dashboard metrics for the user management page. */
+  getDashboardOverview(): Observable<UserDashboardOverview> {
+    return this.http.get<UserDashboardOverview>(`${environment.apiBaseUrl}/dashboard/users/overview`);
   }
 
   updateUser(id: number, payload: SignupPayload): Observable<MessageResponse> {

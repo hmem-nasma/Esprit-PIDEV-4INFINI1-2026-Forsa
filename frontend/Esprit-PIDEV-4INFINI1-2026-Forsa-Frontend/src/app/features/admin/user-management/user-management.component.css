@@ -1,3 +1,73 @@
+.page-toolbar {
+  margin-bottom: 0.5rem;
+}
+
+.um-dash {
+  margin-bottom: 1.5rem;
+}
+
+.um-actions-top {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0 0 1rem;
+}
+
+.um-dash__title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.um-dash__loading {
+  margin: 0;
+}
+
+/* Eight cards → two rows of four on large screens */
+.um-stat-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1023px) {
+  .um-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 480px) {
+  .um-stat-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.um-stat__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.um-stat__icon {
+  padding: 0.5rem;
+  border-radius: 0.75rem;
+  background: color-mix(in oklab, var(--color-primary) 10%, transparent);
+  color: var(--color-blue-600);
+}
+
+.um-stat__label {
+  margin: 0.65rem 0 0.15rem;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--color-muted-foreground);
+}
+
+.um-stat__value {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
 .table-wrap {
   overflow-x: auto;
 }
